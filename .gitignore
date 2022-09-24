@@ -292,3 +292,4 @@ __pycache__/
 *.xsd.cs
 
 .ionide
+**/Keys

@@ -5,7 +5,6 @@ using Novell.Directory.Ldap;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace IdentityServer.LdapExtension
 {
@@ -57,23 +56,21 @@ namespace IdentityServer.LdapExtension
         {
             var searchResult = SearchUser(username, domain);
 
-            var searchTask = Task.Run(async () => await searchResult.Result.Results.AnyAsync());
-            if (searchTask.Result)
+            if (searchResult.Results.HasMore())
             {
                 try
                 {
-                    var task = Task.Run(async () => await searchResult.Result.Results.FirstOrDefaultAsync());
-                    var user = task.Result;
+                    var user = searchResult.Results.Next();
                     if (user != null)
                     {
-                        searchResult.Result.LdapConnection.BindAsync(user.Dn, password);
-                        if (searchResult.Result.LdapConnection.Bound)
+                        searchResult.LdapConnection.Bind(user.Dn, password);
+                        if (searchResult.LdapConnection.Bound)
                         {
                             //could change to ldap or change to configurable option
                             var provider = !string.IsNullOrEmpty(domain) ? domain : "local";
                             var appUser = new TUser();
-                            appUser.SetBaseDetails(user, provider, searchResult.Result.config.ExtraAttributes); // Should we change to LDAP.
-                            searchResult.Result.LdapConnection.Disconnect();
+                            appUser.SetBaseDetails(user, provider, searchResult.config.ExtraAttributes); // Should we change to LDAP.
+                            searchResult.LdapConnection.Disconnect();
 
                             return appUser;
                         }
@@ -87,7 +84,7 @@ namespace IdentityServer.LdapExtension
                 }
             }
 
-            searchResult.Result.LdapConnection.Disconnect();
+            searchResult.LdapConnection.Disconnect();
 
             return default(TUser);
         }
@@ -118,16 +115,15 @@ namespace IdentityServer.LdapExtension
 
             try
             {
-                var task = Task.Run(async () => await searchResult.Result.Results.FirstOrDefaultAsync());
-                var user = task.Result;
+                var user = searchResult.Results.Next();
                 if (user != null)
                 {
                     //could change to ldap or change to configurable option
                     var provider = !string.IsNullOrEmpty(domain) ? domain : "local";
                     var appUser = new TUser();
-                    appUser.SetBaseDetails(user, provider, searchResult.Result.config.ExtraAttributes);
+                    appUser.SetBaseDetails(user, provider, searchResult.config.ExtraAttributes);
 
-                    searchResult.Result.LdapConnection.Disconnect();
+                    searchResult.LdapConnection.Disconnect();
 
                     return appUser;
                 }
@@ -143,7 +139,7 @@ namespace IdentityServer.LdapExtension
             return default(TUser);
         }
 
-        private async Task<(ILdapSearchResults Results, LdapConnection LdapConnection, LdapConfig config)> SearchUser(string username, string domain)
+        private (ILdapSearchResults Results, LdapConnection LdapConnection, LdapConfig config) SearchUser(string username, string domain)
         {
             var allSearchable = _config.Where(f => f.IsConcerned(username)).ToList();
             if (!string.IsNullOrEmpty(domain))
@@ -162,8 +158,8 @@ namespace IdentityServer.LdapExtension
             foreach (var matchConfig in allSearchable)
             {
                 using var ldapConnection = new LdapConnection { SecureSocketLayer = matchConfig.Ssl };
-                await ldapConnection.ConnectAsync(matchConfig.Url, matchConfig.FinalLdapConnectionPort);
-                await ldapConnection.BindAsync(matchConfig.BindDn, matchConfig.BindCredentials);
+                ldapConnection.Connect(matchConfig.Url, matchConfig.FinalLdapConnectionPort);
+                ldapConnection.Bind(matchConfig.BindDn, matchConfig.BindCredentials);
                 
                 var attributes = new TUser().LdapAttributes;
                 var extraFieldList = new List<string>();
@@ -177,7 +173,7 @@ namespace IdentityServer.LdapExtension
                 attributes = attributes.Concat(extraFieldList).ToArray();
 
                 var searchFilter = string.Format(matchConfig.SearchFilter, username);
-                var result = await ldapConnection.SearchAsync(
+                var result = ldapConnection.Search(
                     matchConfig.SearchBase,
                     LdapConnection.ScopeSub,
                     searchFilter,
@@ -185,7 +181,7 @@ namespace IdentityServer.LdapExtension
                     false
                 );
 
-                if (await result.AnyAsync()) // Count is async (not waiting). The hasMore() always works.
+                if (result.HasMore()) // Count is async (not waiting). The hasMore() always works.
                 {
                     return (Results: result as LdapSearchResults, LdapConnection: ldapConnection, matchConfig);
                 }
