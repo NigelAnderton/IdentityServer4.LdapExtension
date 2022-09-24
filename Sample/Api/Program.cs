@@ -51,7 +51,7 @@ public class Program
             options.AddPolicy("ApiScope", policy =>
             {
                 policy.RequireAuthenticatedUser();
-                policy.RequireClaim("scope", "api1"); // Needs to be added in the QuickstartIdentityServer412 ( [.AddInMemoryApiScopes(Config.ApiScopes)] )
+                policy.RequireClaim("scope", "api1"); // Needs to be added in the QuickstartIdentityServer615 ( [.AddInMemoryApiScopes(Config.ApiScopes)] )
             });
         });
 
