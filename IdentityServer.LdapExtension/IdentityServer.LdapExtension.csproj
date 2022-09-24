@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net5.0;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net6.0;</TargetFrameworks>
     <Authors>Nordès Ménard-Lamarre</Authors>
     <Version>2.1.14</Version>
     <Company>HoNoSoFt</Company>
@@ -23,10 +23,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="IdentityModel" Version="5.1.0" />
-    <PackageReference Include="IdentityServer4" Version="4.1.2" />
-    <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />
-    <PackageReference Include="StackExchange.Redis" Version="2.2.4" />
+    <PackageReference Include="Duende.IdentityServer" Version="6.1.5" />
+    <PackageReference Include="IdentityModel" Version="6.0.0" />
+    <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="4.0.0-beta4" />
+    <PackageReference Include="StackExchange.Redis" Version="2.6.66" />
   </ItemGroup>
 
 </Project>

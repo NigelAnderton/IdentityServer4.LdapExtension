@@ -1,7 +1,7 @@
 ﻿using IdentityModel.Client;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Net.Http;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace Api.Client
@@ -53,7 +53,7 @@ namespace Api.Client
             else
             {
                 var content = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(JArray.Parse(content));
+                Console.WriteLine(JsonNode.Parse(content));
             }
             Console.WriteLine("----------------------------------");
             Console.WriteLine("Push any key to close the console app");
