@@ -10,10 +10,10 @@
     <FileVersion>1.0.0.0</FileVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseUrl>https://github.com/Nordes/IdentityServer4.LdapExtension/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/Nordes/IdentityServer4.LdapExtension/</PackageProjectUrl>
     <PackageReleaseNotes>Please visit the [GitHub repository](https://github.com/Nordes/IdentityServer4.LdapExtension/) for more details.</PackageReleaseNotes>
-    <PackageIconUrl>https://www.honosoft.com/img/logo.png</PackageIconUrl>
+    <PackageIcon>logo.png</PackageIcon>
     <Copyright>Nordès Ménard-Lamarre</Copyright>
     <RepositoryUrl>https://github.com/Nordes/IdentityServer4.LdapExtension/</RepositoryUrl>
     <PackageTags>IdentityServer4, Ldap, OpenLdap, ActiveDirectory</PackageTags>
@@ -27,6 +27,15 @@
     <PackageReference Include="IdentityModel" Version="6.0.0" />
     <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.6.66" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE" Pack="true" Visible="false" PackagePath="">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\logo.png" Pack="true" Visible="false" PackagePath="">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
