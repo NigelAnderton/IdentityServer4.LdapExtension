@@ -78,8 +78,8 @@ namespace IdentityServer.LdapExtension
                 }
                 catch (Exception e)
                 {
-                    _logger.LogTrace(e.Message);
-                    _logger.LogTrace(e.StackTrace);
+                    _logger.LogTrace("{EMessage}", e.Message);
+                    _logger.LogTrace("{EStackTrace}", e.StackTrace);
                     throw new LoginFailedException("Login failed.", e);
                 }
             }
@@ -93,7 +93,6 @@ namespace IdentityServer.LdapExtension
         /// Finds user by username.
         /// </summary>
         /// <param name="username">The username.</param>
-        /// <param name="domain">The domain friendly name.</param>
         /// <returns>
         /// Returns the user when it exists.
         /// </returns>
@@ -131,24 +130,24 @@ namespace IdentityServer.LdapExtension
             }
             catch (Exception e)
             {
-                _logger.LogTrace(default(EventId), e, e.Message);
+                _logger.LogTrace(default, e, "{EMessage}", e.Message);
                 // Swallow the exception since we don't expect an error from this method.
             }
 
-            searchResult.LdapConnection.Disconnect();
+            //searchResult.LdapConnection.Disconnect();
 
             return default(TUser);
         }
 
         private (ILdapSearchResults Results, LdapConnection LdapConnection, LdapConfig config) SearchUser(string username, string domain)
         {
-            var allSearcheable = _config.Where(f => f.IsConcerned(username)).ToList();
+            var allSearchable = _config.Where(f => f.IsConcerned(username)).ToList();
             if (!string.IsNullOrEmpty(domain))
             {
-                allSearcheable = allSearcheable.Where(e => e.FriendlyName.Equals(domain)).ToList();
+                allSearchable = allSearchable.Where(e => e.FriendlyName.Equals(domain)).ToList();
             }
 
-            if (allSearcheable == null || allSearcheable.Count() == 0)
+            if (allSearchable == null || !allSearchable.Any())
             {
                 throw new LoginFailedException(
                     "Login failed.",
@@ -156,22 +155,22 @@ namespace IdentityServer.LdapExtension
             }
 
             // Could become async
-            foreach (var matchConfig in allSearcheable)
+            foreach (var matchConfig in allSearchable)
             {
                 using var ldapConnection = new LdapConnection { SecureSocketLayer = matchConfig.Ssl };
                 ldapConnection.Connect(matchConfig.Url, matchConfig.FinalLdapConnectionPort);
                 ldapConnection.Bind(matchConfig.BindDn, matchConfig.BindCredentials);
                 
                 var attributes = new TUser().LdapAttributes;
-                var extrafieldList = new List<string>();
+                var extraFieldList = new List<string>();
 
                 if (matchConfig.ExtraAttributes != null)
                 {
-                    extrafieldList.AddRange(matchConfig.ExtraAttributes);
+                    extraFieldList.AddRange(matchConfig.ExtraAttributes);
                 }
 
 
-                attributes = attributes.Concat(extrafieldList).ToArray();
+                attributes = attributes.Concat(extraFieldList).ToArray();
 
                 var searchFilter = string.Format(matchConfig.SearchFilter, username);
                 var result = ldapConnection.Search(

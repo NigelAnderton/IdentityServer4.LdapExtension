@@ -5,12 +5,6 @@
 using IdentityModel;
 using IdentityServer.LdapExtension.UserModel;
 using IdentityServer.LdapExtension.UserStore;
-using IdentityServer4;
-using IdentityServer4.Events;
-using IdentityServer4.Extensions;
-using IdentityServer4.Models;
-using IdentityServer4.Services;
-using IdentityServer4.Stores;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -18,6 +12,12 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Duende.IdentityServer;
+using Duende.IdentityServer.Events;
+using Duende.IdentityServer.Extensions;
+using Duende.IdentityServer.Models;
+using Duende.IdentityServer.Services;
+using Duende.IdentityServer.Stores;
 
 namespace IdentityServerHost.Quickstart.UI
 {
@@ -125,7 +125,7 @@ namespace IdentityServerHost.Quickstart.UI
                             IsPersistent = true,
                             ExpiresUtc = DateTimeOffset.UtcNow.Add(AccountOptions.RememberMeLoginDuration)
                         };
-                    };
+                    }
 
                     // issue authentication cookie with subject ID and username
                     var isuser = new IdentityServerUser(user.SubjectId)
@@ -203,7 +203,7 @@ namespace IdentityServerHost.Quickstart.UI
             // build a model so the logged out page knows what to display
             var vm = await BuildLoggedOutViewModelAsync(model.LogoutId);
 
-            if (User?.Identity.IsAuthenticated == true)
+            if (User.Identity is { IsAuthenticated: true })
             {
                 // delete local authentication cookie
                 await HttpContext.SignOutAsync();
@@ -242,14 +242,14 @@ namespace IdentityServerHost.Quickstart.UI
             var context = await _interaction.GetAuthorizationContextAsync(returnUrl);
             if (context?.IdP != null && await _schemeProvider.GetSchemeAsync(context.IdP) != null)
             {
-                var local = context.IdP == IdentityServer4.IdentityServerConstants.LocalIdentityProvider;
+                var local = context.IdP == IdentityServerConstants.LocalIdentityProvider;
 
                 // this is meant to short circuit the UI and only trigger the one external IdP
                 var vm = new LoginViewModel
                 {
                     EnableLocalLogin = local,
                     ReturnUrl = returnUrl,
-                    Username = context?.LoginHint,
+                    Username = context.LoginHint,
                 };
 
                 if (!local)
@@ -307,7 +307,7 @@ namespace IdentityServerHost.Quickstart.UI
         {
             var vm = new LogoutViewModel { LogoutId = logoutId, ShowLogoutPrompt = AccountOptions.ShowLogoutPrompt };
 
-            if (User?.Identity.IsAuthenticated != true)
+            if (User.Identity != null && User.Identity.IsAuthenticated != true)
             {
                 // if the user is not authenticated, then just show logged out page
                 vm.ShowLogoutPrompt = false;
@@ -336,26 +336,24 @@ namespace IdentityServerHost.Quickstart.UI
             {
                 AutomaticRedirectAfterSignOut = AccountOptions.AutomaticRedirectAfterSignOut,
                 PostLogoutRedirectUri = logout?.PostLogoutRedirectUri,
-                ClientName = string.IsNullOrEmpty(logout?.ClientName) ? logout?.ClientId : logout?.ClientName,
+                ClientName = string.IsNullOrEmpty(logout?.ClientName) ? logout?.ClientId : logout.ClientName,
                 SignOutIframeUrl = logout?.SignOutIFrameUrl,
                 LogoutId = logoutId
             };
 
-            if (User?.Identity.IsAuthenticated == true)
+            if (User.Identity is { IsAuthenticated: true })
             {
                 var idp = User.FindFirst(JwtClaimTypes.IdentityProvider)?.Value;
-                if (idp != null && idp != IdentityServer4.IdentityServerConstants.LocalIdentityProvider)
+                if (idp != null && idp != IdentityServerConstants.LocalIdentityProvider)
                 {
-                    var providerSupportsSignout = await HttpContext.GetSchemeSupportsSignOutAsync(idp);
-                    if (providerSupportsSignout)
+                    var providerSupportsSignOut =
+                        await IdentityServerHost.Extensions.HttpContextExtensions.GetSchemeSupportsSignOutAsync(HttpContext, idp);
+                    if (providerSupportsSignOut)
                     {
-                        if (vm.LogoutId == null)
-                        {
-                            // if there's no current logout context, we need to create one
-                            // this captures necessary info from the current logged in user
-                            // before we signout and redirect away to the external IdP for signout
-                            vm.LogoutId = await _interaction.CreateLogoutContextAsync();
-                        }
+                        // if there's no current logout context, we need to create one
+                        // this captures necessary info from the current logged in user
+                        // before we signout and redirect away to the external IdP for signOut
+                        vm.LogoutId ??= await _interaction.CreateLogoutContextAsync();
 
                         vm.ExternalAuthenticationScheme = idp;
                     }

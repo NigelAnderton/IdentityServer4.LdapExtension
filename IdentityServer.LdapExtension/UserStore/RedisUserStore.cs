@@ -1,14 +1,14 @@
 ﻿using IdentityModel;
 using IdentityServer.LdapExtension.UserModel;
-using IdentityServer4.Stores.Serialization;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using System.Text.Json;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using Duende.IdentityServer.Stores.Serialization;
 
 namespace IdentityServer.LdapExtension.UserStore
 {
@@ -27,12 +27,13 @@ namespace IdentityServer.LdapExtension.UserStore
         private readonly ILdapService<TUser> _authenticationService;
         private readonly ILogger<RedisUserStore<TUser>> _logger;
         private IConnectionMultiplexer _redis;
-        private readonly JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings
+        private readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
         {
-            Converters = new List<JsonConverter> { new ClaimConverter() },
-            Formatting = Formatting.Indented
+            Converters = { new ClaimConverter() },
+            WriteIndented = true
         };
 
+        // ReSharper disable once NotAccessedField.Local
         private TimeSpan _dataExpireIn;
 
         public RedisUserStore(
@@ -56,11 +57,11 @@ namespace IdentityServer.LdapExtension.UserStore
             _redis = ConnectionMultiplexer.Connect(config.Redis);
             if (_redis.IsConnected)
             {
-                _logger.LogDebug($"LDAP {GetType().Name}: Connected to redis \\o/");
+                _logger.LogDebug("LDAP {Name}: Connected to redis \\\\o/", GetType().Name);
             }
             else
             {
-                _logger.LogError($"LDAP {GetType().Name}: Not able to connect to redis :(");
+                _logger.LogError("LDAP {Name}: Not able to connect to redis :(", GetType().Name);
             }
 
             _dataExpireIn = TimeSpan.FromSeconds(config.RefreshClaimsInSeconds ?? (double)-1);
@@ -143,7 +144,7 @@ namespace IdentityServer.LdapExtension.UserStore
             if (result.HasValue)
             {
                 // IMPORTANT! This line might throw an exception if we change the format/version
-                IAppUser foundSubjectId = JsonConvert.DeserializeObject<TUser>(result.ToString(), _jsonSerializerSettings);
+                IAppUser foundSubjectId = JsonSerializer.Deserialize<TUser>(result.ToString(), _jsonSerializerOptions);
 
                 return foundSubjectId;
             }
@@ -178,12 +179,12 @@ namespace IdentityServer.LdapExtension.UserStore
                 if (subject.HasValue)
                 {
                     // IMPORTANT! This line might throw an exception if we change the format/version
-                    IAppUser foundSubjectId = JsonConvert.DeserializeObject<TUser>(subject.ToString(), _jsonSerializerSettings);
+                    IAppUser foundSubjectId = JsonSerializer.Deserialize<TUser>(subject.ToString(), _jsonSerializerOptions);
 
                     return foundSubjectId;
                 }
 
-                _logger.LogWarning($"The key {foundSubjectIdKey} should not be existing or data is corrupted!");
+                _logger.LogWarning("The key {FoundSubjectIdKey} should not be existing or data is corrupted!", foundSubjectIdKey);
             }
 
             // If nothing found in external, than we look in our current LDAP system. (We want to get always the latest details when we are on the LDAP).
@@ -217,12 +218,12 @@ namespace IdentityServer.LdapExtension.UserStore
                 if (subject.HasValue)
                 {
                     // IMPORTANT! This line might throw an exception if we change the format/version
-                    IAppUser foundSubjectId = JsonConvert.DeserializeObject<TUser>(subject.ToString(), _jsonSerializerSettings);
+                    IAppUser foundSubjectId = JsonSerializer.Deserialize<TUser>(subject.ToString(), _jsonSerializerOptions);
 
                     return foundSubjectId;
                 }
 
-                _logger.LogWarning($"The key {foundSubjectIdKey} should not be existing or data is corrupted!");
+                _logger.LogWarning("The key {FoundSubjectIdKey} should not be existing or data is corrupted!", foundSubjectIdKey);
             }
 
             // Nothing found... just get out and give an error.
@@ -261,7 +262,7 @@ namespace IdentityServer.LdapExtension.UserStore
             }
 
             // if no display name was provided, try to construct by first and/or last name
-            if (!filtered.Any(x => x.Type == JwtClaimTypes.Name))
+            if (filtered.All(x => x.Type != JwtClaimTypes.Name))
             {
                 var first = filtered.FirstOrDefault(x => x.Type == JwtClaimTypes.GivenName)?.Value;
                 var last = filtered.FirstOrDefault(x => x.Type == JwtClaimTypes.FamilyName)?.Value;
@@ -305,8 +306,8 @@ namespace IdentityServer.LdapExtension.UserStore
             const string keyBySubjectId = "IdentityServer/OpenId/subjectId/{0}"; // <== contains the full data
             const string keyByUsername = "IdentityServer/OpenId/username/{0}"; // <== contains a link to the SubjectId
             const string keyByProviderAndUserid = "IdentityServer/OpenId/provider/{0}/userId/{1}"; // <== contains a link to the SubjectId
-
-            var userStr = JsonConvert.SerializeObject(user, _jsonSerializerSettings);
+            
+            var userStr = JsonSerializer.Serialize(user, _jsonSerializerOptions);
             var subjectIdStorageKey = string.Format(keyBySubjectId, user.SubjectId);
 
             // add user to Redis store
@@ -314,7 +315,10 @@ namespace IdentityServer.LdapExtension.UserStore
             var foundUser = rdb.StringGet(string.Format(keyByProviderAndUserid, user.ProviderName, user.ProviderSubjectId));
             if (foundUser.HasValue)
             {
-                _logger.LogWarning($"This data should not be already in redis. {string.Format(keyByProviderAndUserid, user.ProviderName, user.ProviderSubjectId)}");
+                _logger.LogWarning(
+                    "This data should not be already in redis. {Format}", 
+                    string.Format(keyByProviderAndUserid, user.ProviderName, user.ProviderSubjectId)
+                    );
             }
 
             // Add the parameter , _dataExpireIn if we want to expire the data. I don't know the impact if we do it.

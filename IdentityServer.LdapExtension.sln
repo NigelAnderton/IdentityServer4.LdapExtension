@@ -14,7 +14,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Api", "Sample\Api\Api.cspro
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sample", "Sample", "{A5A7BF38-9048-4D87-A51C-6A89D3339E1D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuickstartIdentityServer412", "Sample\IdentityServer\QuickstartIdentityServer412.csproj", "{AF4A8A19-03BB-4C7C-A0E3-DC46FD5781FB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuickstartIdentityServer615", "Sample\IdentityServer\QuickstartIdentityServer615.csproj", "{AF4A8A19-03BB-4C7C-A0E3-DC46FD5781FB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Api.Client", "Api.Client\Api.Client.csproj", "{254C61F7-B232-4CFF-97B5-D4CD328A4ABB}"
 EndProject
